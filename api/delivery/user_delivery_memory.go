@@ -3,17 +3,12 @@ package delivery
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"strconv"
-	// "path/filepath"
 	. "github.com/informeai/challenge-go/api/entities"
 	usecase "github.com/informeai/challenge-go/api/usecases"
+	"io/ioutil"
 	"net/http"
+	"strconv"
 )
-
-type Mux http.ServeMux
-
-func (m *Mux) ServeHTTP(http.ResponseWriter, *http.Request) {}
 
 //UserDeliveryMemory is responsable by route the users.
 type UserDeliveryMemory struct {
@@ -21,6 +16,7 @@ type UserDeliveryMemory struct {
 	server  http.Server
 }
 
+//GetUser is connect of route the get single user by id.
 func (ud *UserDeliveryMemory) GetUser(path string) error {
 	var err error
 	http.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
@@ -54,6 +50,7 @@ func (ud *UserDeliveryMemory) GetUser(path string) error {
 	return err
 }
 
+//GetAllUsers is connect of route for list all users.
 func (ud *UserDeliveryMemory) GetAllUsers(path string) error {
 	var err error
 	http.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
@@ -78,6 +75,7 @@ func (ud *UserDeliveryMemory) GetAllUsers(path string) error {
 	return err
 }
 
+//CreateUser is connect of route the create user.
 func (ud *UserDeliveryMemory) CreateUser(path string) error {
 	var err error
 	http.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
@@ -93,12 +91,10 @@ func (ud *UserDeliveryMemory) CreateUser(path string) error {
 			if err != nil {
 				return
 			}
-			fmt.Println(newUser)
 			user, err := ud.usecase.Create(newUser)
 			if err != nil {
 				return
 			}
-			fmt.Println(user)
 			userMarshal, err := json.Marshal(user)
 			if err != nil {
 				return
@@ -114,21 +110,103 @@ func (ud *UserDeliveryMemory) CreateUser(path string) error {
 	return err
 }
 
+//UpdateUser is connect of route the update user.
 func (ud *UserDeliveryMemory) UpdateUser(path string) error {
-	return nil
+	var err error
+	http.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			updateUser := User{}
+			//receiver user
+			u, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				return
+			}
+			defer r.Body.Close()
+			err = json.Unmarshal(u, &updateUser)
+			if err != nil {
+				return
+			}
+			id, err := ud.usecase.Update(updateUser)
+			if err != nil {
+				return
+			}
+			idMarshal, err := json.Marshal(id)
+			if err != nil {
+				return
+			}
+			idJson := string(idMarshal)
+			fmt.Fprintf(w, idJson)
+		} else {
+			fmt.Fprintf(w, "method not allowed.")
+		}
+
+	})
+
+	return err
 }
 
+//DeleteUser is connect of route the delete user by id.
 func (ud *UserDeliveryMemory) DeleteUser(path string) error {
-	return nil
+	var err error
+	http.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			//receiver id for delete
+			b, err := ioutil.ReadAll(r.Body)
+			if err != nil {
+				return
+			}
+			defer r.Body.Close()
+			id, err := strconv.Atoi(string(b))
+			if err != nil {
+				return
+			}
+			sucess, err := ud.usecase.Delete(id)
+			if err != nil {
+				return
+			}
+			idMarshal, err := json.Marshal(sucess)
+			if err != nil {
+				return
+			}
+			idJson := string(idMarshal)
+			fmt.Fprintf(w, idJson)
+		} else {
+			fmt.Fprintf(w, "method not allowed.")
+		}
+
+	})
+
+	return err
 }
 
+//Run is responsable by running server.
 func (ud *UserDeliveryMemory) Run(address string) error {
 
 	ud.server = http.Server{
 		Addr:    address,
 		Handler: nil,
 	}
-	err := ud.server.ListenAndServe()
+	err := ud.GetUser("/user")
+	if err != nil {
+		return err
+	}
+	err = ud.GetAllUsers("/users")
+	if err != nil {
+		return err
+	}
+	err = ud.CreateUser("/user/create")
+	if err != nil {
+		return err
+	}
+	err = ud.UpdateUser("/user/update")
+	if err != nil {
+		return err
+	}
+	err = ud.DeleteUser("/user/delete")
+	if err != nil {
+		return err
+	}
+	err = ud.server.ListenAndServe()
 	if err != nil {
 		return err
 	}
