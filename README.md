@@ -5,3 +5,4 @@ Repository for challenges and tasks written in pure golang.
 [Api](./api)  
 [Set](./set)  
 [QuickSort](./quicksort)  
+[BynarySearch](./bynarysearch)  
