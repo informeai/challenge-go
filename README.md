@@ -6,3 +6,4 @@ Repository for challenges and tasks written in pure golang.
 [Set](./set)  
 [QuickSort](./quicksort)  
 [BynarySearch](./bynarysearch)  
+[Reverse String](./reversestring)  
